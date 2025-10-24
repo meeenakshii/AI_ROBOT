@@ -2,34 +2,515 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Robot Assistant</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ISRO Assistant Robot</title>
 <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
 <style>
-body { text-align: center; font-family: Arial; background: #000; color: #0ff; }
-.robot { margin: 50px auto; width: 200px; height: 300px; background: #111; border-radius: 20px; box-shadow: 0 0 30px #0ff inset; }
-.eye { width: 40px; height: 40px; border-radius: 50%; background: #0ff; margin: 20px; display: inline-block; }
-button { margin: 15px; padding: 10px 20px; font-size: 16px; border: none; border-radius: 10px; background: #0ff; color: #000; cursor: pointer; }
-#status { margin-top: 20px; color: #fff; }
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: #fff;
+    overflow: hidden;
+}
+
+/* Animated background particles */
+.particles {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.particle {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    background: rgba(0, 255, 255, 0.5);
+    border-radius: 50%;
+    animation: float 6s infinite;
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0) translateX(0);
+        opacity: 0;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-100vh) translateX(50px);
+    }
+}
+
+.container {
+    z-index: 10;
+    text-align: center;
+}
+
+.robot-container {
+    position: relative;
+    margin: 30px auto;
+    perspective: 1000px;
+}
+
+.robot {
+    width: 280px;
+    height: 380px;
+    background: linear-gradient(145deg, #1e1e1e, #2a2a2a);
+    border-radius: 30px;
+    box-shadow: 
+        0 0 50px rgba(0, 255, 255, 0.3),
+        inset 0 0 30px rgba(0, 255, 255, 0.1);
+    position: relative;
+    animation: hover 3s ease-in-out infinite;
+    transition: all 0.3s ease;
+}
+
+@keyframes hover {
+    0%, 100% {
+        transform: translateY(0) rotateX(0);
+    }
+    50% {
+        transform: translateY(-10px) rotateX(2deg);
+    }
+}
+
+.robot.speaking {
+    animation: pulse 0.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        box-shadow: 
+            0 0 50px rgba(0, 255, 255, 0.3),
+            inset 0 0 30px rgba(0, 255, 255, 0.1);
+    }
+    50% {
+        box-shadow: 
+            0 0 80px rgba(0, 255, 255, 0.6),
+            inset 0 0 50px rgba(0, 255, 255, 0.3);
+    }
+}
+
+.head {
+    padding-top: 40px;
+}
+
+.antenna {
+    width: 4px;
+    height: 30px;
+    background: linear-gradient(to top, #0ff, #fff);
+    margin: 0 auto 5px;
+    border-radius: 2px;
+    box-shadow: 0 0 10px #0ff;
+}
+
+.antenna::after {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 12px;
+    height: 12px;
+    background: #0ff;
+    border-radius: 50%;
+    box-shadow: 0 0 15px #0ff;
+    animation: blink 2s ease-in-out infinite;
+}
+
+@keyframes blink {
+    0%, 100% {
+        opacity: 1;
+        transform: translateX(-50%) scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: translateX(-50%) scale(1.2);
+    }
+}
+
+.eyes {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin: 30px 0;
+}
+
+.eye {
+    width: 50px;
+    height: 50px;
+    background: radial-gradient(circle, #0ff 30%, #006666 70%);
+    border-radius: 50%;
+    box-shadow: 
+        0 0 20px #0ff,
+        inset 0 0 10px rgba(0, 255, 255, 0.5);
+    position: relative;
+    animation: eyeGlow 2s ease-in-out infinite;
+}
+
+@keyframes eyeGlow {
+    0%, 100% {
+        box-shadow: 
+            0 0 20px #0ff,
+            inset 0 0 10px rgba(0, 255, 255, 0.5);
+    }
+    50% {
+        box-shadow: 
+            0 0 30px #0ff,
+            inset 0 0 20px rgba(0, 255, 255, 0.8);
+    }
+}
+
+.eye::after {
+    content: '';
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    width: 12px;
+    height: 12px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 0 10px white;
+}
+
+.mouth {
+    width: 80px;
+    height: 8px;
+    background: #0ff;
+    margin: 20px auto;
+    border-radius: 10px;
+    box-shadow: 0 0 15px #0ff;
+    transition: all 0.2s ease;
+}
+
+.mouth.speaking {
+    animation: mouthMove 0.3s ease-in-out infinite;
+    height: 20px;
+    border-radius: 0 0 40px 40px;
+}
+
+@keyframes mouthMove {
+    0%, 100% {
+        height: 20px;
+    }
+    50% {
+        height: 30px;
+    }
+}
+
+.display {
+    width: 200px;
+    height: 60px;
+    margin: 30px auto 20px;
+    background: rgba(0, 20, 40, 0.8);
+    border: 2px solid #0ff;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 0 20px rgba(0, 255, 255, 0.2);
+}
+
+#status {
+    color: #0ff;
+    font-size: 14px;
+    font-weight: bold;
+    text-shadow: 0 0 10px #0ff;
+    padding: 10px;
+    animation: statusPulse 2s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+.controls {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin-top: 40px;
+    flex-wrap: wrap;
+}
+
+button {
+    padding: 15px 35px;
+    font-size: 16px;
+    font-weight: bold;
+    border: 2px solid #0ff;
+    border-radius: 50px;
+    background: linear-gradient(145deg, #1a1a1a, #2d2d2d);
+    color: #0ff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 
+        0 4px 15px rgba(0, 255, 255, 0.2),
+        inset 0 0 10px rgba(0, 255, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+button::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(0, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+button:hover::before {
+    width: 300px;
+    height: 300px;
+}
+
+button:hover {
+    transform: translateY(-3px);
+    box-shadow: 
+        0 8px 25px rgba(0, 255, 255, 0.4),
+        inset 0 0 20px rgba(0, 255, 255, 0.2);
+    border-color: #00ffff;
+}
+
+button:active {
+    transform: translateY(-1px);
+}
+
+button span {
+    position: relative;
+    z-index: 1;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.start-btn {
+    background: linear-gradient(145deg, #00aa00, #00ff00);
+    color: #000;
+    border-color: #00ff00;
+}
+
+.start-btn:hover {
+    border-color: #00ff00;
+    box-shadow: 
+        0 8px 25px rgba(0, 255, 0, 0.4),
+        inset 0 0 20px rgba(0, 255, 0, 0.2);
+}
+
+.stop-btn {
+    background: linear-gradient(145deg, #aa0000, #ff0000);
+    color: #fff;
+    border-color: #ff0000;
+}
+
+.stop-btn:hover {
+    border-color: #ff0000;
+    box-shadow: 
+        0 8px 25px rgba(255, 0, 0, 0.4),
+        inset 0 0 20px rgba(255, 0, 0, 0.2);
+}
+
+.connection-status {
+    margin-top: 30px;
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+.connected {
+    color: #00ff00;
+}
+
+.disconnected {
+    color: #ff0000;
+}
+
+@media (max-width: 600px) {
+    .robot {
+        width: 240px;
+        height: 340px;
+    }
+    
+    .eyes {
+        gap: 30px;
+    }
+    
+    .eye {
+        width: 40px;
+        height: 40px;
+    }
+}
 </style>
 </head>
 <body>
-<div class="robot">
-<div class="eye"></div><div class="eye"></div>
-<p id="status">Idle...</p>
-<button onclick="startFace()">Start</button>
-<button onclick="stopFace()">Stop</button>
+<!-- Animated particles background -->
+<div class="particles" id="particles"></div>
+
+<div class="container">
+    <div class="robot-container">
+        <div class="robot" id="robot">
+            <div class="head">
+                <div class="antenna"></div>
+                <div class="eyes">
+                    <div class="eye"></div>
+                    <div class="eye"></div>
+                </div>
+                <div class="mouth" id="mouth"></div>
+            </div>
+            <div class="display">
+                <p id="status">🤖 Ready to assist...</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="controls">
+        <button class="start-btn" onclick="startFace()" id="startBtn">
+            <span>▶️ Start Assistant</span>
+        </button>
+        <button class="stop-btn" onclick="stopFace()" id="stopBtn" disabled>
+            <span>⏹️ Stop Assistant</span>
+        </button>
+    </div>
+    
+    <div class="connection-status">
+        <span id="connectionStatus" class="disconnected">⚫ Connecting...</span>
+    </div>
 </div>
+
 <script>
+// Generate floating particles
+function createParticles() {
+    const particlesContainer = document.getElementById('particles');
+    const numberOfParticles = 30;
+    
+    for (let i = 0; i < numberOfParticles; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.animationDelay = Math.random() * 6 + 's';
+        particle.style.animationDuration = (Math.random() * 4 + 4) + 's';
+        particlesContainer.appendChild(particle);
+    }
+}
+
+createParticles();
+
+// Socket.IO connection
 const socket = io("http://localhost:8001");
-socket.on("connect", () => console.log("Connected to server"));
-socket.on("status", data => document.getElementById("status").innerText = data.msg);
-socket.on("speak", data => {
-    const audio = new Audio("data:audio/mp3;base64," + data.audio);
-    audio.play();
-    socket.emit("speak_done");
+const robot = document.getElementById("robot");
+const mouth = document.getElementById("mouth");
+const statusText = document.getElementById("status");
+const connectionStatus = document.getElementById("connectionStatus");
+const startBtn = document.getElementById("startBtn");
+const stopBtn = document.getElementById("stopBtn");
+
+let isRunning = false;
+
+socket.on("connect", () => {
+    console.log("✅ Connected to server");
+    connectionStatus.textContent = "🟢 Connected";
+    connectionStatus.className = "connected";
 });
-function startFace(){ socket.emit("start-face"); }
-function stopFace(){ socket.emit("stop_face"); }
+
+socket.on("disconnect", () => {
+    console.log("❌ Disconnected from server");
+    connectionStatus.textContent = "🔴 Disconnected";
+    connectionStatus.className = "disconnected";
+    isRunning = false;
+    updateButtons();
+});
+
+socket.on("status", data => {
+    console.log("📊 Status update:", data.msg);
+    statusText.textContent = data.msg;
+});
+
+socket.on("mouth_move_start", () => {
+    console.log("👄 Mouth animation started");
+    mouth.classList.add("speaking");
+    robot.classList.add("speaking");
+});
+
+socket.on("mouth_move_stop", () => {
+    console.log("👄 Mouth animation stopped");
+    mouth.classList.remove("speaking");
+    robot.classList.remove("speaking");
+});
+
+socket.on("speak", data => {
+    console.log("🔊 Playing audio response");
+    statusText.textContent = data.msg;
+    
+    const audio = new Audio("data:audio/mp3;base64," + data.audio);
+    
+    audio.onended = () => {
+        console.log("✅ Audio playback completed");
+        socket.emit("speak_done");
+    };
+    
+    audio.onerror = (e) => {
+        console.error("❌ Audio playback error:", e);
+        socket.emit("speak_done");
+    };
+    
+    audio.play().catch(err => {
+        console.error("❌ Audio play error:", err);
+        socket.emit("speak_done");
+    });
+});
+
+function updateButtons() {
+    startBtn.disabled = isRunning;
+    stopBtn.disabled = !isRunning;
+}
+
+function startFace() {
+    if (isRunning) return;
+    
+    console.log("🚀 Starting face recognition assistant");
+    socket.emit("start-face");
+    isRunning = true;
+    updateButtons();
+    statusText.textContent = "🎤 Initializing...";
+}
+
+function stopFace() {
+    if (!isRunning) return;
+    
+    console.log("🛑 Stopping assistant");
+    socket.emit("stop_face");
+    isRunning = false;
+    updateButtons();
+}
+
+// Initial button state
+updateButtons();
 </script>
 </body>
 </html>
